@@ -13,4 +13,7 @@
 .externalNativeBuild
 .cxx
 local.properties
-key.properties
+
+# Do not upload your key.properties to the real repository
+# The one in this repository is just an example to help you set up your own
+# key.properties
