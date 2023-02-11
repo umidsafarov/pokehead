@@ -1,7 +1,4 @@
 
-![Logo](http://www.dropbox.com/s/s9kp6qjm3hs2zgi/logo.png?raw=1)
-
-
 # PokeHead
 
 A simple Pokemon database
@@ -29,7 +26,7 @@ This is an example Android project
 
 ## Demo
 
-[Download the latest version from GooglePlay](play.google.com/store/apps/details?id=com.umidsafarov.pokehead)
+[Download the latest APK](https://drive.google.com/file/d/1jswVwVu1qCsTJBRjekJk7NyswnAVBpIx/view?usp=share_link)
 
 
 ## Thanks
