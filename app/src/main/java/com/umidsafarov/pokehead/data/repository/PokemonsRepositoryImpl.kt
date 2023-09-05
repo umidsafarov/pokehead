@@ -49,7 +49,7 @@ class PokemonsRepositoryImpl @Inject constructor(
 
             val localData = dao.getPokemons(count, offset)
 
-            val dataCached = localData.isNotEmpty()
+            val dataCached = localData.isNotEmpty() && localData.size == count
             if (dataCached) {
                 emit(Resource.Success(localData.map { it.toPokemon() }))
             } else {

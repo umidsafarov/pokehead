@@ -1,4 +1,4 @@
-package com.umidsafarov.pokehead.presentation.screen.pokemons_list.ui_component
+package com.umidsafarov.pokehead.presentation.screen.pokemonslist.uicomponent
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
@@ -11,11 +11,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.capitalize
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.umidsafarov.pokehead.R
 import com.umidsafarov.pokehead.presentation.common.resources.ResourcesGetter
-import com.umidsafarov.pokehead.presentation.screen.pokemons_list.model.PokemonItemUIModel
+import com.umidsafarov.pokehead.presentation.screen.pokemonslist.model.PokemonItemUIModel
+import com.umidsafarov.pokehead.presentation.theme.PokeheadAppTheme
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -71,5 +73,22 @@ fun PokemonItem(
                 }
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun Preview() {
+    PokeheadAppTheme {
+        PokemonItem(
+            pokemonItemUIModel = PokemonItemUIModel(
+                id = 1,
+                name = "Pokemon one",
+                avatarUrl = null,
+                expanded = false,
+            ),
+            onItemClick = {},
+            onDetailsClick = {}
+        )
     }
 }

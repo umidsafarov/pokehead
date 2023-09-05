@@ -1,22 +1,21 @@
-package com.umidsafarov.pokehead.presentation.screen.pokemons_list
+package com.umidsafarov.pokehead.presentation.screen.pokemonslist
 
 import android.annotation.SuppressLint
-import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.umidsafarov.pokehead.R
 import com.umidsafarov.pokehead.common.Resource
 import com.umidsafarov.pokehead.domain.model.Pokemon
-import com.umidsafarov.pokehead.domain.use_case.GetPokemonUseCase
-import com.umidsafarov.pokehead.domain.use_case.GetPokemonsListUseCase
-import com.umidsafarov.pokehead.domain.use_case.RefreshPokemonsUseCase
+import com.umidsafarov.pokehead.domain.usecase.GetPokemonUseCase
+import com.umidsafarov.pokehead.domain.usecase.GetPokemonsListUseCase
+import com.umidsafarov.pokehead.domain.usecase.RefreshPokemonsUseCase
 import com.umidsafarov.pokehead.presentation.common.PresenterConfig
-import com.umidsafarov.pokehead.presentation.screen.pokemons_list.model.PokemonItemUIModel
+import com.umidsafarov.pokehead.presentation.screen.pokemonslist.model.PokemonItemUIModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
+import de.palm.composestateevents.consumed
+import de.palm.composestateevents.triggered
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.cancellable
@@ -28,7 +27,6 @@ import javax.inject.Inject
 @SuppressLint("StaticFieldLeak")
 @HiltViewModel
 class PokemonsListViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val getPokemonsListUseCase: GetPokemonsListUseCase,
     private val refreshPokemonsUseCase: RefreshPokemonsUseCase,
     private val getPokemonUseCase: GetPokemonUseCase,
@@ -44,9 +42,9 @@ class PokemonsListViewModel @Inject constructor(
         getNextPokemonsPage()
     }
 
-    fun handleInputEvent(event: PokemonsListContract.Event) {
+    fun handleUIEvent(event: PokemonsListContract.UIEvent) {
         when (event) {
-            is PokemonsListContract.Event.PokemonDetailsToggle -> {
+            is PokemonsListContract.UIEvent.PokemonDetailsToggle -> {
                 val pokemonIndex = pokemonsList.indexOfFirst { it.id == event.pokemonId }
                 if (pokemonIndex == -1)
                     return
@@ -59,26 +57,20 @@ class PokemonsListViewModel @Inject constructor(
                 if (pokemonToToggle.avatarUrl == null)
                     loadPokemonDetails(event.pokemonId)
             }
-            is PokemonsListContract.Event.PokemonChosen -> {
+            is PokemonsListContract.UIEvent.PokemonChosen -> {
                 navigateToPokemon(event.pokemonId)
             }
-            is PokemonsListContract.Event.LoadNext -> {
+            is PokemonsListContract.UIEvent.LoadNext -> {
                 getNextPokemonsPage()
             }
-            is PokemonsListContract.Event.Refresh -> {
+            is PokemonsListContract.UIEvent.Refresh -> {
                 refresh()
             }
-            is PokemonsListContract.Event.ShowAbout -> {
-                state = state.copy(aboutShown = true)
+            is PokemonsListContract.UIEvent.ErrorEventConsumed -> {
+                state = state.copy(errorMessageEvent = consumed())
             }
-            is PokemonsListContract.Event.HideAbout -> {
-                state = state.copy(aboutShown = false)
-            }
-            is PokemonsListContract.Event.ErrorShown -> {
-                state = state.copy(errorMessage = null)
-            }
-            is PokemonsListContract.Event.NavigationDone -> {
-                navigationDone()
+            is PokemonsListContract.UIEvent.NavigationEventConsumed -> {
+                state = state.copy(navigateToPokemonEvent = consumed())
             }
         }
     }
@@ -122,8 +114,7 @@ class PokemonsListViewModel @Inject constructor(
                         }
                         is Resource.Error -> {
                             state = state.copy(
-                                errorMessage = response.message
-                                    ?: context.getString(R.string.error_unknown)
+                                errorMessageEvent = triggered(response.message)
                             )
                             failed = true
                         }
@@ -146,7 +137,7 @@ class PokemonsListViewModel @Inject constructor(
                         }
                     }
                 } catch (t: Throwable) {
-                    state = state.copy(errorMessage = t.message)
+                    state = state.copy(errorMessageEvent = triggered(t.message))
                 }
             }.launchIn(viewModelScope)
         }
@@ -161,8 +152,7 @@ class PokemonsListViewModel @Inject constructor(
                         is Resource.Loading -> Unit
                         is Resource.Error -> {
                             state = state.copy(
-                                errorMessage = response.message
-                                    ?: context.getString(R.string.error_unknown)
+                                errorMessageEvent = triggered(response.message)
                             )
                         }
                         is Resource.Success -> {
@@ -179,17 +169,13 @@ class PokemonsListViewModel @Inject constructor(
                         }
                     }
                 } catch (t: Throwable) {
-                    state = state.copy(errorMessage = t.message)
+                    state = state.copy(errorMessageEvent = triggered(t.message))
                 }
             }.launchIn(viewModelScope)
         }
     }
 
     private fun navigateToPokemon(pokemonId: Int) {
-        state = state.copy(pokemonIdToNavigate = pokemonId)
-    }
-
-    private fun navigationDone() {
-        state = state.copy(pokemonIdToNavigate = null)
+        state = state.copy(navigateToPokemonEvent = triggered(pokemonId))
     }
 }
