@@ -1,4 +1,4 @@
-package com.umidsafarov.pokehead.presentation.screen.pokemons_list
+package com.umidsafarov.pokehead.presentation.screen.pokemonslist
 
 import android.content.Intent
 import android.net.Uri
@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
@@ -28,61 +29,84 @@ import com.umidsafarov.pokehead.BuildConfig
 import com.umidsafarov.pokehead.R
 import com.umidsafarov.pokehead.common.Config
 import com.umidsafarov.pokehead.presentation.common.composables.OnBottomReached
-import com.umidsafarov.pokehead.presentation.screen.pokemons_list.model.PokemonItemUIModel
-import com.umidsafarov.pokehead.presentation.screen.pokemons_list.ui_component.PokemonItem
-import kotlinx.coroutines.launch
+import com.umidsafarov.pokehead.presentation.screen.pokemonslist.model.PokemonItemUIModel
+import com.umidsafarov.pokehead.presentation.screen.pokemonslist.uicomponent.PokemonItem
+import com.umidsafarov.pokehead.presentation.theme.PokeheadAppTheme
+import de.palm.composestateevents.EventEffect
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun PokemonsListScreen(
     state: PokemonsListContract.State,
-    sendEvent: (event: PokemonsListContract.Event) -> Unit,
+    sendEvent: (event: PokemonsListContract.UIEvent) -> Unit,
     onNavigateToPokemon: (pokemonId: Int) -> Unit
 ) {
-    val scope = rememberCoroutineScope()
+    //context
+    val context = LocalContext.current
+
+    //states
     val snackbarHostState = remember { SnackbarHostState() }
     val pullRefreshState = rememberPullRefreshState(
         refreshing = state.isRefreshing,
-        onRefresh = { sendEvent(PokemonsListContract.Event.Refresh) }
+        onRefresh = { sendEvent(PokemonsListContract.UIEvent.Refresh) }
     )
+    val pokemonsExist = remember(key1 = state.pokemons) {
+        !state.pokemons.isNullOrEmpty()
+    }
+    val aboutShownState = remember { mutableStateOf(false) }
 
-    if (state.pokemonIdToNavigate != null) {
-        onNavigateToPokemon(state.pokemonIdToNavigate)
-        sendEvent(PokemonsListContract.Event.NavigationDone)
+    //single time vents
+    EventEffect(event = state.navigateToPokemonEvent, onConsumed = {
+        sendEvent(PokemonsListContract.UIEvent.NavigationEventConsumed)
+    }) { pokemonIdToNavigate ->
+        onNavigateToPokemon(pokemonIdToNavigate)
     }
 
-    LaunchedEffect(key1 = state.errorMessage) {
-        if (state.errorMessage != null) {
-            sendEvent(PokemonsListContract.Event.ErrorShown)
-            scope.launch { snackbarHostState.showSnackbar(state.errorMessage) }
-        }
+    EventEffect(
+        event = state.errorMessageEvent,
+        onConsumed = { sendEvent(PokemonsListContract.UIEvent.ErrorEventConsumed) }) { errorMessage ->
+        snackbarHostState.showSnackbar(errorMessage ?: context.getString(R.string.error_unknown))
     }
 
+    //messages
     ErrorMessage(snackbarHostState)
 
-    if (state.aboutShown)
-        AboutDialog(onDismiss = { sendEvent(PokemonsListContract.Event.HideAbout) })
+    //dialogs
+    if (aboutShownState.value)
+        AboutDialog(onDismiss = { aboutShownState.value = false })
 
+    //interface
     Column(modifier = Modifier.fillMaxSize()) {
-        Header(onClick = { sendEvent(PokemonsListContract.Event.ShowAbout) })
+        Header(onClick = { aboutShownState.value = true })
         Box(
             modifier = Modifier
                 .weight(1f)
                 .pullRefresh(pullRefreshState)
         ) {
-            Crossfade(targetState = !state.pokemons.isNullOrEmpty()) { pokemonsExist ->
+            Crossfade(targetState = pokemonsExist) { pokemonsExist ->
                 if (pokemonsExist) {
                     PokemonsList(
                         pokemons = state.pokemons!!,
-                        isLoading = state.isLoading,
-                        onItemClick = { sendEvent(PokemonsListContract.Event.PokemonDetailsToggle(it.id)) },
-                        onItemDetailsClick = { sendEvent(PokemonsListContract.Event.PokemonChosen(it.id)) },
-                        onBottomReached = { sendEvent(PokemonsListContract.Event.LoadNext) }
+                        onItemClick = {
+                            sendEvent(
+                                PokemonsListContract.UIEvent.PokemonDetailsToggle(
+                                    it.id
+                                )
+                            )
+                        },
+                        onItemDetailsClick = {
+                            sendEvent(
+                                PokemonsListContract.UIEvent.PokemonChosen(
+                                    it.id
+                                )
+                            )
+                        },
+                        onBottomReached = { sendEvent(PokemonsListContract.UIEvent.LoadNext) }
                     )
                 } else {
                     EmptyMessage(
                         state = state,
-                        onClick = { sendEvent(PokemonsListContract.Event.Refresh) }
+                        onClick = { sendEvent(PokemonsListContract.UIEvent.Refresh) }
                     )
                 }
             }
@@ -113,6 +137,9 @@ private fun Header(onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .zIndex(1f)
+            .clickable {
+                onClick()
+            }
     ) {
         Image(
             painter = painterResource(id = R.drawable.logo),
@@ -120,9 +147,6 @@ private fun Header(onClick: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(30.dp)
-                .clickable {
-                    onClick()
-                }
         )
     }
 }
@@ -214,7 +238,6 @@ private fun EmptyMessage(
 @Composable
 private fun PokemonsList(
     pokemons: List<PokemonItemUIModel>,
-    isLoading: Boolean,
     onItemClick: (pokemon: PokemonItemUIModel) -> Unit,
     onItemDetailsClick: (pokemon: PokemonItemUIModel) -> Unit,
     onBottomReached: () -> Unit,
@@ -230,7 +253,7 @@ private fun PokemonsList(
             .padding(0.dp, 2.dp, 0.dp, 0.dp)
             .fillMaxSize()
     ) {
-        itemsIndexed(items = pokemons, key = { _, item -> item.id }) { i, pokemon ->
+        itemsIndexed(items = pokemons, key = { _, item -> item.id }) { _, pokemon ->
             PokemonItem(
                 pokemonItemUIModel = pokemon,
                 onItemClick = { onItemClick(pokemon) },
@@ -248,5 +271,25 @@ private fun PokemonsList(
                 modifier = Modifier.fillMaxWidth()
             )
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun Preview() {
+    PokeheadAppTheme {
+        PokemonsListScreen(
+            state = PokemonsListContract.State(
+                pokemons = listOf(
+                    PokemonItemUIModel(1, "Pokemon one", null, false),
+                    PokemonItemUIModel(2, "Pokemon two", null, true),
+                    PokemonItemUIModel(3, "Pokemon three", null, false),
+                ),
+                isLoading = true,
+                isRefreshing = false,
+            ),
+            sendEvent = {},
+            onNavigateToPokemon = {}
+        )
     }
 }

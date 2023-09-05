@@ -8,10 +8,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.umidsafarov.pokehead.presentation.screen.pokemon_details.PokemonDetailsScreen
-import com.umidsafarov.pokehead.presentation.screen.pokemon_details.PokemonDetailsViewModel
-import com.umidsafarov.pokehead.presentation.screen.pokemons_list.PokemonsListScreen
-import com.umidsafarov.pokehead.presentation.screen.pokemons_list.PokemonsListViewModel
+import com.umidsafarov.pokehead.presentation.screen.pokemondetails.PokemonDetailsScreen
+import com.umidsafarov.pokehead.presentation.screen.pokemondetails.PokemonDetailsViewModel
+import com.umidsafarov.pokehead.presentation.screen.pokemonslist.PokemonsListScreen
+import com.umidsafarov.pokehead.presentation.screen.pokemonslist.PokemonsListViewModel
 
 @Composable
 fun AppNavigation() {
@@ -36,7 +36,7 @@ private fun PokemonsListDestination(navController: NavController) {
     val viewModel: PokemonsListViewModel = hiltViewModel()
     PokemonsListScreen(
         state = viewModel.state,
-        sendEvent = { viewModel.handleInputEvent(it) },
+        sendEvent = { viewModel.handleUIEvent(it) },
         onNavigateToPokemon = { pokemonId ->
             navController.navigate("${NavigationKeys.Route.POKEMONS_LIST}/${pokemonId}")
         }
@@ -48,7 +48,7 @@ private fun PokemonDetailsDestination(navController: NavController) {
     val viewModel: PokemonDetailsViewModel = hiltViewModel()
     PokemonDetailsScreen(
         state = viewModel.state,
-        sendEvent = { viewModel.handleInputEvent(it) },
+        sendEvent = { viewModel.handleUIEvent(it) },
         navigateUp = { navController.popBackStack() }
     )
 }

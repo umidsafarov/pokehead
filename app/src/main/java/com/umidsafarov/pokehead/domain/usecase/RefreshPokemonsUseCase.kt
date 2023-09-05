@@ -1,4 +1,4 @@
-package com.umidsafarov.pokehead.domain.use_case
+package com.umidsafarov.pokehead.domain.usecase
 
 import com.umidsafarov.pokehead.common.Resource
 import com.umidsafarov.pokehead.domain.model.Pokemon

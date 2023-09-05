@@ -1,4 +1,4 @@
-package com.umidsafarov.pokehead.presentation.screen.pokemon_details
+package com.umidsafarov.pokehead.presentation.screen.pokemondetails
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
@@ -13,13 +13,16 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.capitalize
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.umidsafarov.pokehead.R
@@ -28,18 +31,39 @@ import com.umidsafarov.pokehead.domain.model.Pokemon
 import com.umidsafarov.pokehead.presentation.common.model.availableSpritesList
 import com.umidsafarov.pokehead.presentation.common.model.toDrawableResource
 import com.umidsafarov.pokehead.presentation.common.resources.ResourcesGetter
+import com.umidsafarov.pokehead.presentation.theme.PokeheadAppTheme
+import de.palm.composestateevents.EventEffect
 
 @Composable
 fun PokemonDetailsScreen(
     state: PokemonDetailsContract.State,
-    sendEvent: (event: PokemonDetailsContract.Event) -> Unit,
+    sendEvent: (event: PokemonDetailsContract.UIEvent) -> Unit,
     navigateUp: () -> Unit
 ) {
-    if (state.navigateUp) {
+    //context
+    val context = LocalContext.current
+
+    //states
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    //single time events
+    EventEffect(
+        event = state.navigateUpEvent,
+        onConsumed = { sendEvent(PokemonDetailsContract.UIEvent.NavigationEventConsumed) },
+    ) {
         navigateUp()
-        sendEvent(PokemonDetailsContract.Event.NavigationDone)
     }
 
+    EventEffect(
+        event = state.errorMessageEvent,
+        onConsumed = { sendEvent(PokemonDetailsContract.UIEvent.ErrorEventConsumed) }) { errorMessage ->
+        snackbarHostState.showSnackbar(errorMessage ?: context.getString(R.string.error_unknown))
+    }
+
+    //messages
+    ErrorMessage(snackbarHostState)
+
+    //interface
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -51,13 +75,23 @@ fun PokemonDetailsScreen(
             state.pokemon?.details?.elementTypes
         )
         Spacer(modifier = Modifier.height(5.dp))
-        Abilites(abilities = state.pokemon?.abilities)
+        Abilities(abilities = state.pokemon?.abilities)
         Spacer(modifier = Modifier.height(10.dp))
         Sprites(sprites = state.pokemon?.details?.spriteUrls?.availableSpritesList())
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class)
+@Composable
+private fun ErrorMessage(snackbarHostState: SnackbarHostState) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        SnackbarHost(
+            hostState = snackbarHostState,
+            snackbar = { Snackbar(it) },
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
+    }
+}
+
 @Composable
 private fun Header(name: String?, imageUrl: String?, elementTypes: List<Pokemon.ElementType>?) {
     val avatarExpanded = remember { mutableStateOf(false) }
@@ -117,7 +151,7 @@ private fun ElementTypes(elementTypes: List<Pokemon.ElementType>?) {
 }
 
 @Composable
-private fun Abilites(abilities: List<Ability>?) {
+private fun Abilities(abilities: List<Ability>?) {
     Crossfade(abilities != null, modifier = Modifier.fillMaxWidth()) { abilitiesExist ->
         if (abilitiesExist) {
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -205,5 +239,35 @@ private fun Sprites(sprites: List<String>?) {
                 }
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun Preview() {
+    PokeheadAppTheme {
+        PokemonDetailsScreen(
+            state = PokemonDetailsContract.State(
+                Pokemon(
+                    id = 1,
+                    name = "Detailed pokemon",
+                    details = Pokemon.Details(
+                        elementTypes = listOf(
+                            Pokemon.ElementType.DRAGON,
+                            Pokemon.ElementType.DARK
+                        ),
+                        spriteUrls = Pokemon.Details.SpriteUrls(
+                            "invalidUrl", null, null, null, "invalidUrl2", null, null, null,
+                        )
+                    ),
+                    abilities = listOf(
+                        Ability(id = 1, name = "Ability one", null),
+                        Ability(id = 2, name = "Ability two", null)
+                    )
+                )
+            ),
+            sendEvent = {},
+            navigateUp = {},
+        )
     }
 }

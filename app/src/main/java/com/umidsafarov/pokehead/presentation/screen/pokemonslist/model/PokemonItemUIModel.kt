@@ -1,4 +1,4 @@
-package com.umidsafarov.pokehead.presentation.screen.pokemons_list.model
+package com.umidsafarov.pokehead.presentation.screen.pokemonslist.model
 
 data class PokemonItemUIModel(
     val id: Int,
